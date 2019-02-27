@@ -1,0 +1,22 @@
+<%= @log_path %>/*.log {
+        rotate <%= @rotate %>
+        daily
+        compress
+        delaycompress
+        missingok
+        notifempty
+        sharedscripts
+        <% if @post_rotate %>
+        postrotate
+          <%= @post_rotate %>
+        endscript
+        <% end %>
+        <% if @pre_rotate %>
+        postrotate
+          <%= @pre_rotate %>
+        endscript
+        <% end %>
+        <% if @extraline %>
+        <%= @extraline %>
+        <% end %>
+        }
