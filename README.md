@@ -53,6 +53,7 @@ Sensible defaults for Naturalis in init.pp.
                                                          'group' => 'root',
                                                          'mode'  => '0777'},
                                  },
+```
 
 Docker-compose repository
 -------------
@@ -63,7 +64,8 @@ example: https://github.com/naturalis/docker-percolator
 - Make sure all variables can be managed using the .env file
 - When Traefik is used then create volume to the traefik.toml location, example: `- /opt/composeproject/traefik.toml:/traefik.toml`
 - Create labels in each container you want to access through traefik, don't make port mappings to 80,443 or 8080 avoid duplicate port declarations. Multiple certificaties, wildcard, multidomain or single site can be added to the traefik.toml config, traefik will find out which cert to use based on the traefik_frontend_rule label.
-example: ```
+example: 
+```
   labels:
       - "traefik.backend=ppdb-grafana"
       - "traefik.docker.network=web"
