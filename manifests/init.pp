@@ -1,6 +1,6 @@
-# == Class: role_nextcloud
+# == Class: docker_compose
 #
-# Full description of class role_nextcloud here.
+# Full description of class docker_compose here.
 #
 # === Authors
 #
@@ -40,6 +40,12 @@ class docker_compose (
                                                       'post_rotate' => "(cd ${repo_dir}; docker-compose exec db mysqladmin flush-logs)",
                                                       'extraline' => 'su root docker'}
                                  },
+
+# cron hash
+  $cron_hash                    = { 'dailypull'  => { 'command'   => "(cd ${repo_dir}; docker-compose pull; docker-compose up -d)",
+                                                      'hour'      => '4',
+                                                      'minute'    => '0'}
+                                  },
 # directory permissions
   $dir_hash                      = { '/data/config' => { 'owner' => 'root',
                                                          'group' => 'root',
@@ -76,13 +82,6 @@ class docker_compose (
   Exec {
     path => ['/usr/local/bin/','/usr/bin','/bin'],
     cwd  => $docker_compose::repo_dir,
-  }
-
-# Default schedule options
-  schedule { 'everyday':
-     period  => daily,
-     repeat  => 1,
-     range => '5-7',
   }
 
 # create docker_networks
@@ -144,16 +143,6 @@ class docker_compose (
     refreshonly  => true,
   }
 
-# daily run docker-compose up -d and pull containers
-  exec { 'Up the containers to resolve updates' :
-    command  => 'docker-compose up -d',
-    schedule => 'everyday',
-    require  => [
-      Exec['Pull containers'],
-      File["${docker_compose::repo_dir}/.env"]
-    ]
-  }
-
 # restart containers when notified
   exec {'Restart containers on change':
     refreshonly => true,
@@ -176,7 +165,10 @@ class docker_compose (
 # create logrotation rules based on hash
 create_resources('docker_compose::logrotate', $logrotate_hash)
 
-# create logrotation rules based on hash
+# create cron jobs based on hash
+create_resources('docker_compose::cron', $cron_hash)
+
+# create directories based on hash
 create_resources('docker_compose::dirs', $dir_hash)
 
 

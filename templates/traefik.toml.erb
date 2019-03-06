@@ -22,8 +22,8 @@ defaultEntryPoints = ["http","https"]
 <% end %>
 
     [entryPoints.https.tls]
-      [[entryPoints.https.tls.certificates]]
       <% @traefik_cert_hash.each do |title,value| -%>
+      [[entryPoints.https.tls.certificates]]
         certFile = "<%= title %>"
         keyFile = "<%= value %>"
       <% end %>
