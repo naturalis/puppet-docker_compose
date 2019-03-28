@@ -44,7 +44,11 @@ class docker_compose (
 # cron hash
   $cron_hash                    = { 'dailypull'  => { 'command'   => "(cd ${repo_dir}; docker-compose pull; docker-compose up -d)",
                                                       'hour'      => '4',
-                                                      'minute'    => '0'}
+                                                      'minute'    => '0'},
+                                    'weeklyprune' => { 'command'   => "/usr/bin/docker system prune -a -f",
+                                                      'hour'      => '6',
+                                                      'minute'    => '0',
+                                                      'weekday'   => '0'}
                                   },
 # directory permissions
   $dir_hash                      = { '/data/config' => { 'owner' => 'root',
