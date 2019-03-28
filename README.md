@@ -7,20 +7,154 @@ Parameters
 Sensible defaults for Naturalis in init.pp.
 
 ```
-- enablessl                   Enable apache SSL modules, see SSL example
-- docroot                     Documentroot, match location with 'docroot' part of the instances parameter
-- mysql_root_password         Root password for mysql server
-- cron                        Enable hourly cronjob for drupal installation. 
+  $version                      = '1.23.2',  # docker-compose version
+  $repo_dir                     = '/opt/composeproject',  # directory where docker_compose.yml should be, checked out from github repo
+  $repo_source                  = 'https://github.com/naturalis/repo_with_docker_compose_yml.git'
+  $repo_ensure                  = 'latest',
+  $repo_revision                = 'master',
+  $manageenv                    = 'no',  # .env will always be created from settings_hash manageenv = no will not overwrite any changes done to the file. 
+  $settings_hash                = { 'mysqlpassword' => 'MYSQLPASSWD',  # .env is created from hash 
+                                    'basepath'      => '/data'
+                                  },
+  $docker_network_array         = ['web'], # array with docker networks which will be created. 
+  
+# traefik options
+  $traefik_toml                 = true,  # create traefik.toml based on template
+  $traefik_toml_location        = "${role_drupal::repo_dir}/traefik.toml", # location of traefik.toml file
+  $traefik_enable_ssl           = true, # enable SSL in traefik
+  $traefik_debug                = false, # enable debug mode
+  $traefik_whitelist            = false, # enable whitelist
+  $traefik_whitelist_array      = ['172.16.0.0/16'], # array with ip ranges for whitelist
+  $traefik_domain               = 'naturalis.nl',
+
+# hash for location of certificates, certificates are not requested or created by traefik and must be installed on the server manually or using another provisioning script
+  $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
+                                    '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
+                                  },
+# log rotation hash, logrotation rules which will be installed on the server because containers are usually stripped from logrotation. 
+  $logrotate_hash               = { 'apache2'    => { 'log_path' => '/data/www/log/apache2',
+                                                      'post_rotate' => "(cd ${repo_dir}; docker-compose exec drupal service apache2 reload)",
+                                                      'extraline' => 'su root docker'},
+                                    'mysql'      => { 'log_path' => '/data/database/mysqllog',
+                                                      'post_rotate' => "(cd ${repo_dir}; docker-compose exec db mysqladmin flush-logs)",
+                                                      'extraline' => 'su root docker'}
+                                 },
+
+# cron hash, hash with cronjobs see cron.pp for possible options 
+  $cron_hash                    = { 'dailypull'  => { 'command'   => "(cd ${repo_dir}; docker-compose pull; docker-compose up -d)",
+                                                      'hour'      => '4',
+                                                      'minute'    => '0'}
+                                  },
+# directory permissions, hash with custom directory permissions
+  $dir_hash                      = { '/data/config' => { 'owner' => 'root',
+                                                         'group' => 'root',
+                                                         'mode'  => '0777'},
+                                     '/data/logs'   => { 'owner' => 'root',
+                                                         'group' => 'root',
+                                                         'mode'  => '0777'},
+                                 },
 ```
+
+Docker-compose repository
+-------------
+Requirements of the repository containing docker-compose.yml
+example: https://github.com/naturalis/docker-percolator
+
+- Create .gitignore with atleast .env as content
+- Make sure all variables can be managed using the .env file
+- When Traefik is used then create volume to the traefik.toml location, example: `- /opt/composeproject/traefik.toml:/traefik.toml`
+- Create labels in each container you want to access through traefik, don't make port mappings to 80,443 or 8080 avoid duplicate port declarations. Multiple certificaties, wildcard, multidomain or single site can be added to the traefik.toml config, traefik will find out which cert to use based on the traefik_frontend_rule label.
+example: 
+```
+  labels:
+      - "traefik.backend=ppdb-grafana"
+      - "traefik.docker.network=web"
+      - "traefik.enable=true"
+      - "traefik.port=3000"
+      - ${GRAFANA_URL_CONFIG:-traefik.frontend.rule=Host:reports.ppdb.naturalis.nl}
+```
+
+Guidelines/hints: 
+- Make sure there are logging rules for every container, example: 
+```
+    logging:
+      driver: "json-file"
+      options:
+        max-size: '10m'
+```
+- Use tags for containers, not latest to avoid unexpected upgrades.. example : `image: postgres:10.5`
+
+
+
+
+The Foreman
+-------------
+Hashes look a bit different when used with the Foreman, when class parameters are overriden they do not always convert to hash correctly and are set to type: string instead of hash, these examples might help customize the settings rather easiliy.
+
+- cron_hash example
+```
+dailypull:
+  command: "(cd /opt/ppdb; docker-compose pull; docker-compose up -d)"
+  hour: '4'
+  minute: '0'
+create_dataset_xenocanto:
+  command: cd /opt/ppdb; docker-compose run validator php create_dataset.php --config=/config/xeno-canto.ini
+    2>&1 >> /var/log/validator/validator.log
+  minute: 23
+  hour: 11
+```
+
+- dir_hash example
+```
+"/data":
+  group: root
+  mode: '0775'
+  owner: root
+"/var/log/validator":
+  group: root
+  mode: '0700'
+  owner: root
+```
+
+- logrotate_hash example
+```
+validator:
+  log_path: "/var/log/validator"
+  extraline: su root root
+```
+
+- settings_hash example
+```
+MINIO_WAARNEMING_DATA_DIR: "/data/validator/minio-waarneming"
+MINIO_XENOCANTO_DATA_DIR: "/data/validator/minio-xenocanto"
+MINIO_NATURALIS_DATA_DIR: "/data/validator/minio-naturalis"
+ELASTICSEARCH_DATA: "/data/elasticsearch-data"
+ELASTICSEARCH_BACKUP: "/data/elasticsearch-backup"
+GRAFANA_DATA: "/data/grafana-data"
+```
+
+- cert_hash example
+```
+"/etc/letsencrypt/live/s3.naturalis.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.naturalis.ppdb.naturalis.nl/privkey.pem"
+"/etc/letsencrypt/live/s3.waarneming.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.waarneming.ppdb.naturalis.nl/privkey.pem"
+"/etc/letsencrypt/live/s3.xenocanto.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.xenocanto.ppdb.naturalis.nl/privkey.pem"
+"/etc/letsencrypt/live/ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/ppdb.naturalis.nl/privkey.pem"
+```
+
 
 
 Classes
 -------------
 - docker_compose
+- docker_compose::dirs
+- docker_compose::cron
+- docker_compose::logrotate
 
 
 Dependencies
 -------------
+- puppetlabs/docker
+- puppetlabs/stdlib
 
 Docker-compose
 --------------
@@ -28,14 +162,20 @@ Docker-compose
 It is started using Foreman which creates:
 
  - .env file
- - docker-compose.yml
-
+ - repo checkout which should contain docker-compose.yml
+ - logrotate rules
+ - traefik configuration file with option for multiple ssl certificates
+ - crontab jobs
+ - custom directory permissions
+ - docker and docker-compose binaries 
+ - docker networks 
 
 
 Result
 ------
+ - hopefully working application based on docker-compose 
 
-Limitations
+Compatibility
 -----------
-This has been tested.
+This has been tested on Puppet5 with Ubuntu 18.04 
 
