@@ -44,6 +44,10 @@ Sensible defaults for Naturalis in init.pp.
   $cron_hash                    = { 'dailypull'  => { 'command'   => "(cd ${repo_dir}; docker-compose pull; docker-compose up -d)",
                                                       'hour'      => '4',
                                                       'minute'    => '0'}
+                                    'weeklyprune' => { 'command'   => "/usr/bin/docker system prune -a -f",
+                                                      'hour'      => '6',
+                                                      'minute'    => '0',
+                                                      'weekday'   => '0'}
                                   },
 # directory permissions, hash with custom directory permissions
   $dir_hash                      = { '/data/config' => { 'owner' => 'root',
@@ -83,7 +87,7 @@ Guidelines/hints:
         max-size: '10m'
 ```
 - Use tags for containers, not latest to avoid unexpected upgrades.. example : `image: postgres:10.5`
-
+- cronjob weekly prune is advised, this will clean up all docker related images, containers and networks which are not currently in use. disk usage in /var/lib/docker grows rather fast when this is not run atleast once a week. 
 
 
 
@@ -97,6 +101,11 @@ dailypull:
   command: "(cd /opt/ppdb; docker-compose pull; docker-compose up -d)"
   hour: '4'
   minute: '0'
+weeklyprune:
+  command: "/usr/bin/docker system prune -a -f"
+  hour: '6'
+  minute: '0'
+  weekday: '0'
 create_dataset_xenocanto:
   command: cd /opt/ppdb; docker-compose run validator php create_dataset.php --config=/config/xeno-canto.ini
     2>&1 >> /var/log/validator/validator.log
