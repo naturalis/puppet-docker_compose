@@ -32,7 +32,7 @@ class docker_compose (
   $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
                                     '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
                                   },
-# log rotaion hash
+# log rotation hash
   $logrotate_hash               = { 'apache2'    => { 'log_path' => '/data/www/log/apache2',
                                                       'post_rotate' => "(cd ${repo_dir}; docker-compose exec drupal service apache2 reload)",
                                                       'extraline' => 'su root docker'},
