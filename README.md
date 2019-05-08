@@ -90,7 +90,6 @@ Guidelines/hints:
 - cronjob weekly prune is advised, this will clean up all docker related images, containers and networks which are not currently in use. disk usage in /var/lib/docker grows rather fast when this is not run atleast once a week. 
 
 
-
 The Foreman
 -------------
 Hashes look a bit different when used with the Foreman, when class parameters are overriden they do not always convert to hash correctly and are set to type: string instead of hash, these examples might help customize the settings rather easiliy.
@@ -150,7 +149,8 @@ GRAFANA_DATA: "/data/grafana-data"
 "/etc/letsencrypt/live/ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/ppdb.naturalis.nl/privkey.pem"
 ```
 
-
+- facter facts
+script `/usr/local/sbin/create_container_facts.sh`  is created and runs 6 times a day using a schedule in init.pp. The script creates `/etc/facter/facts.d/metadata_containers.json` which contains a valid json output based on docker ps in json output.
 
 Classes
 -------------
@@ -178,7 +178,7 @@ It is started using Foreman which creates:
  - custom directory permissions
  - docker and docker-compose binaries 
  - docker networks 
-
+ - container facts in facter
 
 Result
 ------

@@ -1,6 +1,7 @@
 # Logrotate creation
 define docker_compose::logrotate (
   $log_path,
+  $log_name         = '*.log',
   $post_rotate      = undef,
   $pre_rotate       = undef,
   $extraline        = undef,

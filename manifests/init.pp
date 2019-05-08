@@ -160,10 +160,27 @@ class docker_compose (
 # try to start docker-compose if no containers are running
   exec {'Start containers if none are running':
     command     => 'docker-compose up -d',
-    onlyif      => 'docker-compose ps | wc -l | grep -c 2',
+    onlyif      => 'docker-compose ps | tail -1 | grep -c "\-\-\-\-\-\-\-\-\-\-\-\-"',
     require     => [
       File["${docker_compose::repo_dir}/.env"]
     ]
+  }
+
+# create external container facts script
+  file { '/usr/local/sbin/create_container_facts.sh':
+    source       => 'puppet:///modules/docker_compose/create_container_facts.sh',
+    mode         => '0700',
+  }
+
+# create 6 times a day schedule, should be often enough for refreshing external container facts
+  schedule { '6 times a day':
+    period => daily,
+    repeat  => '6',
+  }
+
+# execute create_container_facts based on schedule
+  exec { '/usr/local/sbin/create_container_facts.sh':
+    schedule => '6 times a day',
   }
 
 # create logrotation rules based on hash
