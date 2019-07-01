@@ -11,38 +11,39 @@
 class docker_compose (
   $version                      = '1.23.2',
   $repo_dir                     = '/opt/composeproject',
-  $repo_source                  = 'https://github.com/naturalis/docker_mattermost.git',
+  $repo_source                  = 'https://github.com/naturalis/docker_compose_project.git',
   $repo_ensure                  = 'latest',
   $repo_revision                = 'master',
-  $manageenv                    = 'no',
+  $manageenv                    = 'yes',
   $settings_hash                = { 'mysqlpassword' => 'MYSQLPASSWD',
                                     'basepath'      => '/data'
                                   },
   $docker_network_array         = ['web'],
-  
+
 # traefik options
   $traefik_toml                 = true,
-  $traefik_toml_location        = "${role_drupal::repo_dir}/traefik.toml",
+  $traefik_toml_location        = '/opt/composeproject/traefik.toml',
   $traefik_enable_ssl           = true,
   $traefik_debug                = false,
   $traefik_whitelist            = false,
   $traefik_whitelist_array      = ['172.16.0.0/16'],
   $traefik_domain               = 'naturalis.nl',
+
 # cert hash = location to cert
   $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
                                     '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
                                   },
 # log rotation hash
   $logrotate_hash               = { 'apache2'    => { 'log_path' => '/data/www/log/apache2',
-                                                      'post_rotate' => "(cd ${repo_dir}; docker-compose exec drupal service apache2 reload)",
+                                                      'post_rotate' => "(cd /opt/composeproject; docker-compose exec drupal service apache2 reload)",
                                                       'extraline' => 'su root docker'},
                                     'mysql'      => { 'log_path' => '/data/database/mysqllog',
-                                                      'post_rotate' => "(cd ${repo_dir}; docker-compose exec db mysqladmin flush-logs)",
+                                                      'post_rotate' => "(cd /opt/composeproject; docker-compose exec db mysqladmin flush-logs)",
                                                       'extraline' => 'su root docker'}
                                  },
 
 # cron hash
-  $cron_hash                    = { 'dailypull'  => { 'command'   => "(cd ${repo_dir}; docker-compose pull; docker-compose up -d)",
+  $cron_hash                    = { 'dailypull'  => { 'command'   => "(cd /opt/composeproject; docker-compose pull; docker-compose up -d)",
                                                       'hour'      => '4',
                                                       'minute'    => '0'},
                                     'weeklyprune' => { 'command'   => "/usr/bin/docker system prune -a -f",
