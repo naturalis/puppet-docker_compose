@@ -29,10 +29,18 @@ class docker_compose (
   $traefik_whitelist_array      = ['172.16.0.0/16'],
   $traefik_domain               = 'naturalis.nl',
 
-# cert hash = location to cert
+# enable certificate requests using traefik
+  $traefik_transip_dns          = false,
+
+# cert hash = location to cert, only used when traefik_transip_dns = false
   $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
                                     '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
-                                  },
+
+# settings related to traefik letsencrypt cert based on DNS check, only used when traefik_transip_dns = true
+  $letsencrypt_email            = 'aut@naturalis.nl',
+  $transip_accountname          = 'naturalis',
+  $transip_API_key              = '<private key here>',
+
 # log rotation hash
   $logrotate_hash               = { 'apache2'    => { 'log_path' => '/data/www/log/apache2',
                                                       'post_rotate' => "(cd /opt/composeproject; docker-compose exec drupal service apache2 reload)",
@@ -59,6 +67,7 @@ class docker_compose (
                                                          'group' => 'root',
                                                          'mode'  => '0777'},
                                  },
+
 
 # sensu check settings
   $checks_defaults    = {
@@ -111,6 +120,15 @@ class docker_compose (
     require   => Package['git'],
     notify    => [Exec['Pull containers'],Exec['Restart containers on change']],
   }
+  
+# create acme.json, always created, even when unused. 
+file { "${docker_compose::repo_dir}/acme.json":
+    ensure   => file,
+    replace  => false,
+    content  => '',
+    mode     => '0600',
+    require  => Vcsrepo[$docker_compose::repo_dir],
+  }
 
 # create .env file 
   file { "${docker_compose::repo_dir}/.env":
@@ -119,14 +137,26 @@ class docker_compose (
     replace  => $docker_compose::manageenv,
     content  => template('docker_compose/env.erb'),
     notify   => Exec['Restart containers on change'],
-    require  => Vcsrepo[$docker_compose::repo_dir],
+    require  => Vcsrepo[$docker_compose::repo_dir]
   }
 
 # create traefik toml when enabled
+  if ( $traefik_transip_dns == true ) {
+    $traefik_template = 'traefik.dns.toml.erb'
+    file { "${docker_compose::repo_dir}/.transip.key":
+      ensure   => file,
+      content  => $transip_API_key,
+      mode     => '0600',
+      require  => Vcsrepo[$docker_compose::repo_dir],
+    }
+  }else{
+    $traefik_template = 'traefik.toml.erb'
+  }
+
   if ( $traefik_toml == true ) {
     file { $traefik_toml_location :
       ensure   => file,
-      content  => template('docker_compose/traefik.toml.erb'),
+      content  => template("docker_compose/${traefik_template}"),
       require  => Vcsrepo[$docker_compose::repo_dir],
       notify   => Exec['Restart traefik on change'],
     }
@@ -154,7 +184,8 @@ class docker_compose (
     command     => 'docker-compose up -d',
     require     => [
       Exec['Pull containers'],
-      File["${docker_compose::repo_dir}/.env"]
+      File["${docker_compose::repo_dir}/.env"],
+      File["${docker_compose::repo_dir}/acme.json"]
     ]
   }
 
@@ -163,7 +194,8 @@ class docker_compose (
     command     => 'docker-compose up -d',
     onlyif      => 'docker-compose ps | tail -1 | grep -c "\-\-\-\-\-\-\-\-\-\-\-\-"',
     require     => [
-      File["${docker_compose::repo_dir}/.env"]
+      File["${docker_compose::repo_dir}/.env"],
+      File["${docker_compose::repo_dir}/acme.json"]
     ]
   }
 
@@ -192,6 +224,5 @@ create_resources('docker_compose::cron', $cron_hash)
 
 # create directories based on hash
 create_resources('docker_compose::dirs', $dir_hash)
-
 
 }

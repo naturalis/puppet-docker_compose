@@ -17,7 +17,7 @@ Sensible defaults for Naturalis in init.pp.
                                     'basepath'      => '/data'
                                   },
   $docker_network_array         = ['web'], # array with docker networks which will be created. 
-  
+
 # traefik options
   $traefik_toml                 = true,  # create traefik.toml based on template
   $traefik_toml_location        = "${role_drupal::repo_dir}/traefik.toml", # location of traefik.toml file
@@ -27,10 +27,18 @@ Sensible defaults for Naturalis in init.pp.
   $traefik_whitelist_array      = ['172.16.0.0/16'], # array with ip ranges for whitelist
   $traefik_domain               = 'naturalis.nl',
 
-# hash for location of certificates, certificates are not requested or created by traefik and must be installed on the server manually or using another provisioning script
+# enable certificate requests using traefik
+  $traefik_transip_dns          = false,
+  
+# cert hash = location to cert, only used when traefik_transip_dns = false
   $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
                                     '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
-                                  },
+
+# settings related to traefik letsencrypt cert based on DNS check, only used when traefik_transip_dns = true
+  $letsencrypt_email            = 'aut@naturalis.nl',
+  $transip_accountname          = 'naturalis',
+  $transip_API_key              = '<private key here>',
+
 # log rotation hash, logrotation rules which will be installed on the server because containers are usually stripped from logrotation. 
   $logrotate_hash               = { 'apache2'    => { 'log_path' => '/data/www/log/apache2',
                                                       'post_rotate' => "(cd ${repo_dir}; docker-compose exec drupal service apache2 reload)",
@@ -66,7 +74,7 @@ example: https://github.com/naturalis/docker-percolator
 
 - Create .gitignore with atleast .env as content
 - Make sure all variables can be managed using the .env file
-- When Traefik is used then create volume to the traefik.toml location, example: `- /opt/composeproject/traefik.toml:/traefik.toml`
+- When Traefik is used then create volume to the traefik.toml location and acme.json, example: `- /opt/composeproject/traefik.toml:/traefik.toml`
 - Create labels in each container you want to access through traefik, don't make port mappings to 80,443 or 8080 avoid duplicate port declarations. Multiple certificaties, wildcard, multidomain or single site can be added to the traefik.toml config, traefik will find out which cert to use based on the traefik_frontend_rule label.
 example: 
 ```
