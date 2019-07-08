@@ -35,7 +35,7 @@ class docker_compose (
 # cert hash = location to cert, only used when traefik_transip_dns = false
   $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
                                     '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
-
+                                  },
 # settings related to traefik letsencrypt cert based on DNS check, only used when traefik_transip_dns = true
   $letsencrypt_email            = 'aut@naturalis.nl',
   $transip_accountname          = 'naturalis',
