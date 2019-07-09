@@ -235,7 +235,7 @@ Not too much known issues but the first puppet run will always generate errors e
 - Create Transip private API key
 - Modified default options: 
   - $traefik_transip_dns = true
-  - $transip_API_key              = '<private TransIP API key here>',
+  - $transip_API_key              = 'private TransIP API key here',
 - The module will create a traefik.toml with transip DNS hook and create a .transip.key and a acme.json file
 - Use docker-compose service part as shown below, make sure the TRANSIP environment variables are correct and the toml, acme.json and .transip.key volumes are correct.
 - Don't forget to create a .gitignore so the .transip.key and acme.json won't appear public in github. 
