@@ -163,6 +163,14 @@ ELASTICSEARCH_BACKUP: "/data/elasticsearch-backup"
 GRAFANA_DATA: "/data/grafana-data"
 ```
 
+- cert_hash example
+```
+"/etc/letsencrypt/live/s3.naturalis.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.naturalis.ppdb.naturalis.nl/privkey.pem"
+"/etc/letsencrypt/live/s3.waarneming.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.waarneming.ppdb.naturalis.nl/privkey.pem"
+"/etc/letsencrypt/live/s3.xenocanto.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.xenocanto.ppdb.naturalis.nl/privkey.pem"
+"/etc/letsencrypt/live/ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/ppdb.naturalis.nl/privkey.pem"
+```
+
 - facter facts
 script `/usr/local/sbin/create_container_facts.sh`  is created and runs 6 times a day using a schedule in init.pp. The script creates `/etc/facter/facts.d/metadata_containers.json` which contains a valid json output based on docker ps in json output.
 
@@ -259,14 +267,6 @@ Not too much known issues but the first puppet run will always generate errors e
 - The volume mapping will create acme.json directory if there is no empty acme.json created before starting docker-compose, stop docker-compose, run puppet or create acme.json empty file with 0700 permissions and root ownership before starting docker-compose again.
 - If transip environment or key are not correct then there will appear a traefik selfsigned cert in acme.json, new attempt to request a certificate from letsencrypt will not be done within 24 hours unless docker-compose is stopped and contents of acme.json is cleared.
 
-
-- cert_hash example
-```
-"/etc/letsencrypt/live/s3.naturalis.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.naturalis.ppdb.naturalis.nl/privkey.pem"
-"/etc/letsencrypt/live/s3.waarneming.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.waarneming.ppdb.naturalis.nl/privkey.pem"
-"/etc/letsencrypt/live/s3.xenocanto.ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/s3.xenocanto.ppdb.naturalis.nl/privkey.pem"
-"/etc/letsencrypt/live/ppdb.naturalis.nl/fullchain.pem": "/etc/letsencrypt/live/ppdb.naturalis.nl/privkey.pem"
-```
 
 
 Classes
