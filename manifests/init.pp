@@ -9,7 +9,7 @@
 #
 
 class docker_compose (
-  $version                      = '1.23.2',
+  $version                      = '1.24.1',
   $repo_dir                     = '/opt/composeproject',
   $repo_source                  = 'https://github.com/naturalis/docker_compose_project.git',
   $repo_ensure                  = 'latest',
