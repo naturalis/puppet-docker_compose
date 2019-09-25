@@ -1,0 +1,41 @@
+[Global]
+  checkNewVersion = true
+  sendAnonymousUsage = false
+
+[log]
+  level = "INFO"
+
+[entrypoints]
+  [entrypoints.http]
+  address = ":80"
+
+  [entrypoints.https]
+  address = ":443"
+
+[certificatesResolvers.transip.acme]
+  email = "<%= @letsencrypt_email %>"
+  storage = "acme.json"
+
+  [certificatesResolvers.transip.acme.dnsChallenge]
+    provider = "transip"
+    delayBeforeCheck = 0
+    resolvers = ["ns0.transip.net:53", "ns1.transip.nl:53", "ns2.transip.eu"]
+
+[api]
+  dashboard = true
+  debug = <%= @traefik_debug %>
+  insecure = true
+
+[providers]
+  [providers.docker]
+    endpoint = "unix:///var/run/docker.sock"
+    watch = true
+    exposedbydefault = false
+
+<% if @traefik_whitelist %>
+# Accepts request from defined IP
+[http.middlewares]
+  [http.middlewares.test-ipwhitelist.ipWhiteList]
+    sourceRange = ["<%= @traefik_whitelist_array.join('","') %>"]
+<% end %>
+

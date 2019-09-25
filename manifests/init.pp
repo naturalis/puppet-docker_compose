@@ -26,11 +26,13 @@ class docker_compose (
   $traefik_enable_ssl           = true,
   $traefik_debug                = false,
   $traefik_whitelist            = false,
-  $traefik_whitelist_array      = ['172.16.0.0/16'],
+  $traefik_whitelist_array      = ['10.119.0.0/16'],
   $traefik_domain               = 'naturalis.nl',
-
+  $traefik_version              = '1', # use 2 for traefik 2.x.x compatible toml file. 
+  
 # enable certificate requests using traefik
   $traefik_transip_dns          = false,
+  $traefik_route53_dns          = false,
 
 # cert hash = location to cert, only used when traefik_transip_dns = false
   $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
@@ -141,16 +143,20 @@ file { "${docker_compose::repo_dir}/acme.json":
   }
 
 # create traefik toml when enabled
-  if ( $traefik_transip_dns == true ) {
-    $traefik_template = 'traefik.dns.toml.erb'
-    file { "${docker_compose::repo_dir}/.transip.key":
-      ensure   => file,
-      content  => $transip_API_key,
-      mode     => '0600',
-      require  => Vcsrepo[$docker_compose::repo_dir],
-    }
+  if ( $traefik_route53_dns == true ) {
+    $traefik_template = "traefik${traefik_version}.route53.toml.erb"
   }else{
-    $traefik_template = 'traefik.toml.erb'
+    if ( $traefik_transip_dns == true ) {
+      $traefik_template = "traefik${traefik_version}.dns.toml.erb"
+      file { "${docker_compose::repo_dir}/.transip.key":
+        ensure   => file,
+        content  => $transip_API_key,
+        mode     => '0600',
+        require  => Vcsrepo[$docker_compose::repo_dir],
+      }
+    }else{
+      $traefik_template = "traefik${traefik_version}.toml.erb"
+    }
   }
 
   if ( $traefik_toml == true ) {
