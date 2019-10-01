@@ -29,7 +29,9 @@ class docker_compose (
   $traefik_whitelist_array      = ['10.119.0.0/16'],
   $traefik_domain               = 'naturalis.nl',
   $traefik_version              = '1', # use 2 for traefik 2.x.x compatible toml file. 
-  
+  $traefik_providersfile        = false,
+  $traefik_providersfile_name   = 'dynamic-conf.toml',
+
 # enable certificate requests using traefik
   $traefik_transip_dns          = false,
   $traefik_route53_dns          = false,
