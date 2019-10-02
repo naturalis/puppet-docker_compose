@@ -17,16 +17,23 @@
   debug = <%= @traefik_debug %>
   insecure = true
 
+[certificatesResolvers.default.acme]
+  email = "<%= @letsencrypt_email %>"
+  storage = "/etc/traefik/acme.json"
+
+  [certificatesResolvers.default.acme.httpChallenge]
+    # used during the challenge
+    entryPoint = "http"
+
 [providers]
   [providers.docker]
     endpoint = "unix:///var/run/docker.sock"
     watch = true
     exposedbydefault = false
 
-<% if @traefik_whitelist %>
-# Accepts request from defined IP
-[http.middlewares]
-  [http.middlewares.test-ipwhitelist.ipWhiteList]
-    sourceRange = ["<%= @traefik_whitelist_array.join('","') %>"]
+<% if @traefik_providersfile %>
+  [providers.file]
+    filename = "<%= @traefik_providersfile_name %>"
 <% end %>
+
 

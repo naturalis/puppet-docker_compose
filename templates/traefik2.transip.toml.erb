@@ -32,10 +32,9 @@
     watch = true
     exposedbydefault = false
 
-<% if @traefik_whitelist %>
-# Accepts request from defined IP
-[http.middlewares]
-  [http.middlewares.test-ipwhitelist.ipWhiteList]
-    sourceRange = ["<%= @traefik_whitelist_array.join('","') %>"]
+
+<% if @traefik_providersfile %>
+  [providers.file]
+    filename = "<%= @traefik_providersfile_name %>"
 <% end %>
 
