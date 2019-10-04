@@ -19,6 +19,7 @@ Sensible defaults for Naturalis in init.pp.
   $docker_network_array         = ['web'], # array with docker networks which will be created. 
 
 # traefik options
+
   $traefik_toml                 = true,  # create traefik.toml based on template
   $traefik_toml_location        = '/opt/composeproject/traefik.toml', # location of traefik.toml file
   $traefik_enable_ssl           = true, # enable SSL in traefik
@@ -26,18 +27,24 @@ Sensible defaults for Naturalis in init.pp.
   $traefik_whitelist            = false, # enable whitelist
   $traefik_whitelist_array      = ['172.16.0.0/16'], # array with ip ranges for whitelist
   $traefik_domain               = 'naturalis.nl',
-
-# enable certificate requests using traefik
-  $traefik_transip_dns          = false,
+  $traefik_version              = '1', # use 2 for traefik 2.x.x compatible toml file. 
+  $traefik_providersfile        = false, # create providers file location entry in traefik.toml
+  $traefik_providersfile_name   = '/etc/traefik/dynamic-conf.toml',   
+  $traefik_cert_resolver        = 'default',   # possible = default, transip, route53
 
 # cert hash = location to cert, only used when traefik_transip_dns = false
-  $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem
-                                    '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem
+  $traefik_cert_hash            = { '/etc/letsencrypt/live/site1.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site1.site.org/privkey.pem',
+                                    '/etc/letsencrypt/live/site2.site.org/fullchain.pem' =>  '/etc/letsencrypt/live/site2.site.org/privkey.pem',
                                   },
 # settings related to traefik letsencrypt cert based on DNS check, only used when traefik_transip_dns = true
   $letsencrypt_email            = 'aut@naturalis.nl',
   $transip_accountname          = 'naturalis',
   $transip_API_key              = '<private key here>',
+
+# traefik options
+# enable certificate requests using traefik, proven to be instable, use with care
+  $traefik_transip_dns          = false,
+
 
 # log rotation hash, logrotation rules which will be installed on the server because containers are usually stripped from logrotation. 
   $logrotate_hash               = { 'apache2'    => { 'log_path' => '/data/www/log/apache2',
@@ -77,6 +84,7 @@ example: https://github.com/naturalis/docker-percolator
 - When Traefik is used then create volume to the traefik.toml location and acme.json, example: `- /opt/composeproject/traefik.toml:/traefik.toml`
 - Create labels in each container you want to access through traefik, don't make port mappings to 80,443 or 8080 avoid duplicate port declarations. Multiple certificaties, wildcard, multidomain or single site can be added to the traefik.toml config, traefik will find out which cert to use based on the traefik_frontend_rule label.
 example: 
+traefik 1
 ```
   labels:
       - "traefik.backend=ppdb-grafana"
@@ -84,6 +92,55 @@ example:
       - "traefik.enable=true"
       - "traefik.port=3000"
       - ${GRAFANA_URL_CONFIG:-traefik.frontend.rule=Host:reports.ppdb.naturalis.nl}
+```
+traefik 2
+```
+    labels:
+      - traefik.enable=${TRAEFIK_ENABLE:-true}
+      - traefik.http.routers.jira.entrypoints=https
+      - traefik.http.routers.jira.tls.certresolver=${TRAEFIK_CERT_RESOLVER:-default}
+      - traefik.http.routers.jira.tls=true
+      - traefik.http.routers.jira.rule=${JIRA_URL_CONFIG:-Host(`jira.example.com`)}
+```
+
+Create also the treafik service in docker-compose:
+traefik 1 (using certs on localhost)
+```
+  traefik:
+    image: traefik:1.7.4
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 8081:8080
+    networks:
+      - default
+      - web
+    logging: *default-logging
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${TRAEFIK_TOML_FILE:-./traefik.dev.toml}:/traefik.toml
+      - ${CERTDIR:-/etc/letsencrypt}:/etc/letsencrypt
+
+```
+traefik 2
+```
+  traefik:
+    image: traefik:2.0.1
+    container_name: traefik
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+      - 8081:8080
+    networks:
+      - default
+      - web
+    logging: *default-logging
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./traefik:/etc/traefik
 ```
 
 Guidelines/hints: 
@@ -110,6 +167,8 @@ and creating a single line in each service:
 .transip.key
 traefik.toml
 acme.json
+traefik/acme.json
+traefik/traefik.toml
 ```
 
 The Foreman
